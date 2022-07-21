@@ -18,6 +18,7 @@
     "prettier": "^2.7.1"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.131.0",
     "dayjs": "^1.11.4",
     "dotenv": "^16.0.1",
     "inquirer": "^9.0.2",
