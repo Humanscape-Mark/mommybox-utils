@@ -1,0 +1,17 @@
+service: mmb-mark-utils
+
+plugins:
+  - serverless-dotenv-plugin
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: ap-northeast-2
+
+functions:
+  dailyCheckDeviceDetails:
+    handler: lib/mmbDevices.dailyCheck
+    events:
+      - schedule: cron(0 3 ? * * *)
