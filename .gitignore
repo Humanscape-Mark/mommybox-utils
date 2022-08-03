@@ -159,3 +159,5 @@ Temporary Items
 bun.lockb
 
 package-lock.json
+
+.build

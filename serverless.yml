@@ -2,7 +2,9 @@ service: mmb-mark-utils
 
 plugins:
   - serverless-dotenv-plugin
-
+  - serverless-plugin-typescript
+  - serverless-offline
+  
 frameworkVersion: '3'
 
 provider:
