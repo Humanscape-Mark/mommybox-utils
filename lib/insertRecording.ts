@@ -1,6 +1,7 @@
 import 'dotenv/config'
-import * as fs from 'fs'
-import * as path from 'path'
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
 import inquirer from 'inquirer'
 import dayjs from 'dayjs'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
@@ -25,7 +26,6 @@ function getContentType (filename: string) {
 
 async function uploadS3 (data: any) {
   const s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-northeast-2' })
-  const recordingFilePath = process.env.RECORDING_FILE_PATH || ''
   try {
     const filelist = fs.readdirSync(path.join(recordingFilePath)).filter((filename) => filename.startsWith(data.fileId))
     console.log(filelist)
@@ -94,6 +94,8 @@ async function insertDB (data: { barcode: string; fileId: any; videoLength: any;
   }
 }
 
+const recordingFilePath = process.env.RECORDING_FILE_PATH || os.homedir()
+
 export default inquirer
   .prompt([
     {
@@ -152,6 +154,12 @@ export default inquirer
           throw Error('숫자를 입력해 주세요')
         }
       }
+    },
+    {
+      type: 'number',
+      message: 'recordingFilePath:',
+      name: 'recordingFilePath',
+      default: recordingFilePath
     },
     {
       type: 'input',
