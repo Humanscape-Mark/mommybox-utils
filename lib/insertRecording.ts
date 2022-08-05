@@ -7,93 +7,6 @@ import dayjs from 'dayjs'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import db from '../config/db.js'
 
-function getContentType (filename: string) {
-  const extension = filename.split('.')[1]
-
-  switch (extension) {
-    case 'mp4':
-      return 'video/mp4'
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg'
-    case 'png':
-      return 'image/png'
-    case 'log':
-    case 'txt':
-      return 'application/octet-stream'
-  }
-}
-
-async function uploadS3 (data: any) {
-  const s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-northeast-2' })
-  try {
-    const filelist = fs.readdirSync(path.join(recordingFilePath)).filter((filename) => filename.startsWith(data.fileId))
-    console.log(filelist)
-
-    if (filelist.length > 0) {
-      await Promise.all(
-        filelist.map(async (file) => {
-          data.videoLength = data.videoLength.toString()
-          await s3Client.send(
-            new PutObjectCommand({
-              Bucket: process.env.S3_ULTRASOUND_BUCKET || 'ultrasound.mmtalk.kr',
-              Key: `${data.barcode}/${file}`,
-              ACL: 'public-read',
-              CacheControl: 'max-age=31536000',
-              ContentType: getContentType(file),
-              Metadata: data,
-              Body: fs.createReadStream(path.join(recordingFilePath, file))
-            })
-          )
-        })
-      )
-
-      console.log('S3 Uploaded!')
-
-      filelist.map(async (file) => {
-        fs.unlinkSync(path.join(recordingFilePath, file))
-      })
-
-      console.log('Deleted all files')
-    } else {
-      throw new Error('No such files')
-    }
-  } catch (error) {
-    console.log(error)
-    throw new Error('Upload failed')
-  }
-}
-
-async function insertDB (data: { barcode: string; fileId: any; videoLength: any; recordedAt: any; deviceName: any }) {
-  const insertQuery = `
-    INSERT INTO recordings (
-      deviceSeq, hospitalSeq, hospitalRoomSeq,
-      barcode, fullBarcode, deleteFlag,
-      fileId, localFilePath, resolution,
-      videoLength, s3Bucket, s3FileKey,
-      recordedAt, createdAt, updatedAt
-    )
-
-    SELECT
-      devices.seq, devices.hospitalSeq, devices.hospitalRoomSeq,
-      ${data.barcode.substring(2)}, ${data.barcode}, 0,
-      '${data.fileId}', '', '720p',
-      ${data.videoLength}, 'ultrasound.mmtalk.kr', '${data.barcode}/${data.fileId}.mp4',
-      '${data.recordedAt}', NOW(), NOW()
-    FROM
-      devices
-    WHERE
-      deviceName = '${data.deviceName}'
-  `
-
-  try {
-    const result = await db.query(insertQuery, { raw: true })
-    console.log(`Insert Success, recording seq: ${result[0]}`)
-  } catch (error) {
-    console.log(error)
-  }
-}
-
 const recordingFilePath = process.env.RECORDING_FILE_PATH || os.homedir()
 
 export default inquirer
@@ -185,3 +98,90 @@ export default inquirer
       console.log(error)
     }
   })
+
+function getContentType (filename: string) {
+  const extension = filename.split('.')[1]
+
+  switch (extension) {
+    case 'mp4':
+      return 'video/mp4'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'png':
+      return 'image/png'
+    case 'log':
+    case 'txt':
+      return 'application/octet-stream'
+  }
+}
+
+async function uploadS3 (data: any) {
+  const s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-northeast-2' })
+  try {
+    const filelist = fs.readdirSync(path.join(recordingFilePath)).filter((filename) => filename.startsWith(data.fileId))
+    console.log(filelist)
+
+    if (filelist.length > 0) {
+      await Promise.all(
+        filelist.map(async (file) => {
+          data.videoLength = data.videoLength.toString()
+          await s3Client.send(
+            new PutObjectCommand({
+              Bucket: process.env.S3_ULTRASOUND_BUCKET || 'ultrasound.mmtalk.kr',
+              Key: `${data.barcode}/${file}`,
+              ACL: 'public-read',
+              CacheControl: 'max-age=31536000',
+              ContentType: getContentType(file),
+              Metadata: data,
+              Body: fs.createReadStream(path.join(recordingFilePath, file))
+            })
+          )
+        })
+      )
+
+      console.log('S3 Uploaded!')
+
+      filelist.map(async (file) => {
+        fs.unlinkSync(path.join(recordingFilePath, file))
+      })
+
+      console.log('Deleted all files')
+    } else {
+      throw new Error('No such files')
+    }
+  } catch (error) {
+    console.log(error)
+    throw new Error('Upload failed')
+  }
+}
+
+async function insertDB (data: { barcode: string; fileId: any; videoLength: any; recordedAt: any; deviceName: any }) {
+  const insertQuery = `
+    INSERT INTO recordings (
+      deviceSeq, hospitalSeq, hospitalRoomSeq,
+      barcode, fullBarcode, deleteFlag,
+      fileId, localFilePath, resolution,
+      videoLength, s3Bucket, s3FileKey,
+      recordedAt, createdAt, updatedAt
+    )
+
+    SELECT
+      devices.seq, devices.hospitalSeq, devices.hospitalRoomSeq,
+      ${data.barcode.substring(2)}, ${data.barcode}, 0,
+      '${data.fileId}', '', '720p',
+      ${data.videoLength}, 'ultrasound.mmtalk.kr', '${data.barcode}/${data.fileId}.mp4',
+      '${data.recordedAt}', NOW(), NOW()
+    FROM
+      devices
+    WHERE
+      deviceName = '${data.deviceName}'
+  `
+
+  try {
+    const result = await db.query(insertQuery, { raw: true })
+    console.log(`Insert Success, recording seq: ${result[0]}`)
+  } catch (error) {
+    console.log(error)
+  }
+}
