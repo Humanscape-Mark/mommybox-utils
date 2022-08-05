@@ -1,38 +1,39 @@
-import 'dotenv/config';
-import fs from 'fs';
-import path from 'path';
-import inquirer from 'inquirer';
-import dayjs from 'dayjs';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import db from '../config/db.js';
+import 'dotenv/config'
+import * as fs from 'fs'
+import * as path from 'path'
+import inquirer from 'inquirer'
+import dayjs from 'dayjs'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import db from '../config/db.js'
 
-function getContentType(filename) {
-  const extension = filename.split('.')[1];
+function getContentType (filename: string) {
+  const extension = filename.split('.')[1]
 
   switch (extension) {
     case 'mp4':
-      return 'video/mp4';
+      return 'video/mp4'
     case 'jpg':
     case 'jpeg':
-      return 'image/jpeg';
+      return 'image/jpeg'
     case 'png':
-      return 'image/png';
+      return 'image/png'
     case 'log':
     case 'txt':
-      return 'application/octet-stream';
+      return 'application/octet-stream'
   }
 }
 
-async function uploadS3(data) {
-  const s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-northeast-2' });
+async function uploadS3 (data: any) {
+  const s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-northeast-2' })
+  const recordingFilePath = process.env.RECORDING_FILE_PATH || ''
   try {
-    const filelist = fs.readdirSync(path.join(process.env.RECORDING_FILE_PATH)).filter((filename) => filename.startsWith(data.fileId));
-    console.log(filelist);
+    const filelist = fs.readdirSync(path.join(recordingFilePath)).filter((filename) => filename.startsWith(data.fileId))
+    console.log(filelist)
 
     if (filelist.length > 0) {
       await Promise.all(
         filelist.map(async (file) => {
-          data.videoLength = data.videoLength.toString();
+          data.videoLength = data.videoLength.toString()
           await s3Client.send(
             new PutObjectCommand({
               Bucket: process.env.S3_ULTRASOUND_BUCKET || 'ultrasound.mmtalk.kr',
@@ -41,29 +42,29 @@ async function uploadS3(data) {
               CacheControl: 'max-age=31536000',
               ContentType: getContentType(file),
               Metadata: data,
-              Body: fs.createReadStream(path.join(process.env.RECORDING_FILE_PATH, file))
+              Body: fs.createReadStream(path.join(recordingFilePath, file))
             })
-          );
+          )
         })
-      );
+      )
 
-      console.log(`S3 Uploaded!`);
+      console.log('S3 Uploaded!')
 
       filelist.map(async (file) => {
-        fs.unlinkSync(path.join(process.env.RECORDING_FILE_PATH, file));
-      });
+        fs.unlinkSync(path.join(recordingFilePath, file))
+      })
 
-      console.log(`Deleted all files`);
+      console.log('Deleted all files')
     } else {
-      throw new Error('No such files');
+      throw new Error('No such files')
     }
   } catch (error) {
-    console.log(error);
-    throw new Error('Upload failed', error);
+    console.log(error)
+    throw new Error('Upload failed')
   }
 }
 
-async function insertDB(data) {
+async function insertDB (data: { barcode: string; fileId: any; videoLength: any; recordedAt: any; deviceName: any }) {
   const insertQuery = `
     INSERT INTO recordings (
       deviceSeq, hospitalSeq, hospitalRoomSeq,
@@ -83,13 +84,13 @@ async function insertDB(data) {
       devices
     WHERE
       deviceName = '${data.deviceName}'
-  `;
+  `
 
   try {
-    const result = await db.query(insertQuery, { raw: true });
-    console.log(`Insert Success, recording seq: ${result[0]}`);
+    const result = await db.query(insertQuery, { raw: true })
+    console.log(`Insert Success, recording seq: ${result[0]}`)
   } catch (error) {
-    console.log(error.parent.sqlMessage);
+    console.log(error)
   }
 }
 
@@ -99,56 +100,56 @@ export default inquirer
       type: 'input',
       message: 'deviceName:',
       name: 'deviceName',
-      validate(input) {
+      validate (input) {
         if (/^MB\d{1}-\w{1}\d{5}$/.test(input.trim())) {
-          return true;
+          return true
         } else {
-          throw Error('박스이름 형식 오류');
+          throw Error('박스이름 형식 오류')
         }
       },
-      filter(input) {
-        return input.trim();
+      filter (input) {
+        return input.trim()
       }
     },
     {
       type: 'input',
       message: 'barcode:',
       name: 'barcode',
-      validate(input) {
+      validate (input) {
         if (input.trim().length === 11) {
-          return true;
+          return true
         } else {
-          throw Error('바코드 길이 오류');
+          throw Error('바코드 길이 오류')
         }
       },
-      filter(input) {
-        return input.trim();
+      filter (input) {
+        return input.trim()
       }
     },
     {
       type: 'input',
       message: 'fileId:',
       name: 'fileId',
-      validate(input) {
+      validate (input) {
         if (input.trim().length === 16) {
-          return true;
+          return true
         } else {
-          throw Error('파일명 길이 오류');
+          throw Error('파일명 길이 오류')
         }
       },
-      filter(input) {
-        return input.trim();
+      filter (input) {
+        return input.trim()
       }
     },
     {
       type: 'number',
       message: 'videoLength:',
       name: 'videoLength',
-      validate(input) {
+      validate (input) {
         if (typeof input === 'number') {
-          return true;
+          return true
         } else {
-          throw Error('숫자를 입력해 주세요');
+          throw Error('숫자를 입력해 주세요')
         }
       }
     },
@@ -156,23 +157,23 @@ export default inquirer
       type: 'input',
       message: 'recordedAt (YYYY-MM-DD hh:mm:ss):',
       name: 'recordedAt',
-      validate(input) {
+      validate (input) {
         if (dayjs(input).isValid()) {
-          return true;
+          return true
         } else {
-          throw Error('올바른 날짜 형식이 아닙니다.');
+          throw Error('올바른 날짜 형식이 아닙니다.')
         }
       },
-      filter(input) {
-        return dayjs(input).subtract(9, 'hours').format('YYYY-MM-DD hh:mm:ss');
+      filter (input) {
+        return dayjs(input).subtract(9, 'hours').format('YYYY-MM-DD hh:mm:ss')
       }
     }
   ])
   .then(async (answers) => {
     try {
-      await uploadS3(answers);
-      await insertDB(answers);
+      await uploadS3(answers)
+      await insertDB(answers)
     } catch (error) {
-      console.log(error);
+      console.log(error)
     }
-  });
+  })
