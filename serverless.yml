@@ -11,6 +11,12 @@ provider:
   name: aws
   runtime: nodejs14.x
   region: ap-northeast-2
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: 's3:*'
+          Resource: 'arn:aws:s3:::device-daily-log/*'
 
 functions:
   dailyCheckDeviceDetails:
