@@ -22,9 +22,8 @@ export default inquirer
     },
     {
       type: 'number',
-      message: 'hospitalSeq (기본값: 이관용 MB0-X00034):',
+      message: 'hospitalSeq:',
       name: 'hospitalSeq',
-      default: '34',
       validate (input) {
         if (typeof input === 'number') {
           return true
