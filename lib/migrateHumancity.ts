@@ -2,6 +2,10 @@ import fs from 'fs'
 import ffmpeg from 'fluent-ffmpeg'
 import async from 'async'
 import inquirer from 'inquirer'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc.js'
+
+dayjs.extend(utc)
 
 export default inquirer
   .prompt([
@@ -67,9 +71,11 @@ export default inquirer
   })
 
 function fileNameDateParser (filename: string) {
-  return filename
+  const datestring = filename
     .replace('y', '-').replace('m', '-').replace('d(', ' ')
     .replace('h', ':').replace('m', ':').replace('s).mp4', '')
+
+  return dayjs(datestring).utc().format()
 }
 
 function getVideoLength (filePath: string): Promise<number> {

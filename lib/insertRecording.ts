@@ -3,9 +3,13 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import inquirer from 'inquirer'
-import dayjs from 'dayjs'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import db from '../config/db.js'
+
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc.js'
+
+dayjs.extend(utc)
 
 const recordingFilePath = process.env.RECORDING_FILE_PATH || os.homedir()
 
@@ -86,7 +90,7 @@ export default inquirer
         }
       },
       filter (input) {
-        return dayjs(input).subtract(9, 'hours').format('YYYY-MM-DD hh:mm:ss')
+        return dayjs(input).utc().format()
       }
     }
   ])
