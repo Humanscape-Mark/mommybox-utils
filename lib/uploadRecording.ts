@@ -3,14 +3,14 @@ import fs from 'fs'
 import path from 'path'
 import axios from 'axios'
 import os from 'os'
-import _ from 'lodash'
 import inquirer from 'inquirer'
 import ffmpeg from 'fluent-ffmpeg'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc.js'
-import { v4 as uuidv4 } from 'uuid'
+import advancedFormat from 'dayjs/plugin/advancedFormat.js'
 
 dayjs.extend(utc)
+dayjs.extend(advancedFormat)
 
 const recordingFilePath = process.env.RECORDING_FILE_PATH || os.homedir()
 
@@ -85,110 +85,34 @@ export default inquirer
         }
       }
     ]).then(async (files) => {
-      const slsApiAxios = axios.create({
-        baseURL: answers.environment === 'dev' ? process.env.SLS_API_HOST_DEV : process.env.SLS_API_HOST_PROD,
-        timeout: 15000,
-        headers: {
-          'x-api-key': (answers.environment === 'dev' ? process.env.SLS_API_KEY_DEV : process.env.SLS_API_KEY_PROD) || ''
-        }
-      })
       console.log(answers)
       console.log(files)
 
+      const uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_DEV : process.env.BOX_UPLOADER_URL_PROD
+
       try {
-        const videoLength = getVideoLength(path.join(answers.recordingFilePath, files.recording))
+        const videoLength = await getVideoLength(path.join(answers.recordingFilePath, files.recording))
 
-        const legacyInfo = await slsApiAxios({
-          method: 'GET',
-          url: '/migrateGetLegacyDeviceInfo',
-          params: {
-            countryCode: process.env.COUNTRY_CODE,
-            serialNumber: answers.deviceName
-          }
-        })
-
-        console.log(`Get Legacy Info '${answers.deviceName}': ${legacyInfo.statusText}`)
-
-        const videoPresignedUrl = await slsApiAxios({
+        const result = await axios({
           method: 'POST',
-          url: '/requestUltraSoundPreSignedUrl',
-          data: {
-            objects: [
-              {
-                countryCode: process.env.COUNTRY_CODE,
-                Key: `${legacyInfo.data.hospitalCode}/${files.recording}`,
-                expires: 60
-              }
-            ]
-          }
-        })
-
-        console.log('Get Video Presigned URL: ' + videoPresignedUrl.statusText)
-
-        const sendVideo = await axios({
-          method: 'PUT',
-          url: videoPresignedUrl.data[0].signedUrl,
+          url: uploaderUrl + '/recording/upload',
           headers: {
-            'Content-Type': 'video/mp4'
+            'Content-Type': 'multipart/form-data',
+            Authorization: 'Bearer ' + process.env.UPLOADER_JWT_TOKEN
           },
-          data: fs.readFileSync(path.join(answers.recordingFilePath, files.recording)),
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity
-        })
-
-        console.log(`Send Video '${files.recording}': ${sendVideo.statusText}`)
-
-        const imagePresignedUrl = await slsApiAxios({
-          method: 'POST',
-          url: '/requestUltraSoundPreSignedUrl',
           data: {
-            objects: [
-              {
-                countryCode: process.env.COUNTRY_CODE,
-                Key: `${legacyInfo.data.hospitalCode}/${files.thumbnail}`,
-                expires: 60
-              }
-            ]
+            barcode: answers.barcode,
+            deviceName: answers.deviceName,
+            recordedAt: dayjs().format('x'),
+            resolution: '720p',
+            videoLength,
+            recording: fs.createReadStream(path.join(answers.recordingFilePath, files.recording)),
+            thumbnail: fs.createReadStream(path.join(answers.recordingFilePath, files.thumbnail)),
+            fileId: files.recording.split('.')[0]
           }
         })
 
-        await axios({
-          method: 'PUT',
-          url: imagePresignedUrl.data[0].signedUrl,
-          headers: {
-            'Content-Type': 'image/jpeg'
-          },
-          data: fs.readFileSync(path.join(answers.recordingFilePath, files.thumbnail)),
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity
-        })
-
-        const finishData = {
-          uuid: uuidv4(),
-          barcode: answers.barcode,
-          countryCode: process.env.COUNTRY_CODE,
-          recordedAt: dayjs().utc().format(),
-          files: {
-            video: `${legacyInfo.data.hospitalCode}/${files.recording}`,
-            image: `${legacyInfo.data.hospitalCode}/${files.thumbnail}`,
-            videoLength
-          },
-          deviceCode: legacyInfo.data.sk,
-          deviceSeq: legacyInfo.data.legacyInfo.seq,
-          hospitalSeq: legacyInfo.data.legacyInfo.hospitalSeq,
-          hospitalRoomSeq: legacyInfo.data.legacyInfo.hospitalRoomSeq,
-          ..._.pick(legacyInfo.data, ['hospitalCode', 'hospitalName', 'roomCode', 'roomName', 'deviceName'])
-        }
-
-        console.log(JSON.stringify(finishData))
-
-        const finished = await slsApiAxios({
-          method: 'POST',
-          url: '/migrateUltrasoundUploadFinish',
-          data: finishData
-        })
-
-        console.log('Sls Finished: ' + finished.statusText)
+        console.log(result.data)
       } catch (error) {
         console.log(error)
       }
