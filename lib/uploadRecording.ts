@@ -20,6 +20,7 @@ export default inquirer
       type: 'input',
       message: 'deviceName:',
       name: 'deviceName',
+      default: 'MB2-A90009',
       validate (input) {
         if (/^MB\d{1}-\w{1}\d{5}$/.test(input.trim())) {
           return true
@@ -96,6 +97,8 @@ export default inquirer
         const result = await axios({
           method: 'POST',
           url: uploaderUrl + '/recording/upload',
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
           headers: {
             'Content-Type': 'multipart/form-data',
             Authorization: 'Bearer ' + process.env.UPLOADER_JWT_TOKEN
