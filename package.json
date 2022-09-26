@@ -15,6 +15,7 @@
     "@types/async": "^3.2.15",
     "@types/fluent-ffmpeg": "^2.1.20",
     "@types/inquirer": "^8.2.1",
+    "@types/uuid": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "^5.32.0",
     "@typescript-eslint/parser": "^5.32.0",
     "eslint": "^8.21.0",
@@ -40,6 +41,7 @@
     "lodash": "^4.17.21",
     "mysql2": "^2.3.3",
     "sequelize": "^6.21.3",
+    "uuid": "^9.0.0",
     "winston": "^3.8.1"
   }
 }
