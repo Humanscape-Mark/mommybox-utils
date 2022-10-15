@@ -1,4 +1,6 @@
 import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import ffmpeg from 'fluent-ffmpeg'
 import async from 'async'
 import inquirer from 'inquirer'
@@ -57,7 +59,7 @@ export default inquirer
       type: 'input',
       message: 'baseDir:',
       name: 'baseDir',
-      default: '/Users/mark/Downloads/mp4'
+      default: path.join(os.homedir(), 'mp4')
     }
   ])
   .then(async (answers) => {
