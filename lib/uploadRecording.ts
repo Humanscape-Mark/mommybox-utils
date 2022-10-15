@@ -24,7 +24,7 @@ export default inquirer
         if (/^MB\d{1}-\w{1}\d{5}$/.test(input.trim())) {
           return true
         } else {
-          throw Error('박스이름 형식 오류')
+          throw Error('Invalid deviceName')
         }
       },
       filter (input) {
@@ -39,7 +39,7 @@ export default inquirer
         if (input.trim().length === 11) {
           return true
         } else {
-          throw Error('바코드 길이 오류')
+          throw Error('Invalid barcode')
         }
       },
       filter (input) {
@@ -48,14 +48,14 @@ export default inquirer
     },
     {
       type: 'list',
-      message: '국가',
+      message: 'County',
       name: 'country',
       choices: ['kr', 'id'],
       default: 'kr'
     },
     {
       type: 'list',
-      message: '개발/운영',
+      message: 'Dev/Prod',
       name: 'environment',
       choices: ['dev', 'prod']
     },
@@ -71,7 +71,7 @@ export default inquirer
       {
         type: 'list',
         name: 'recording',
-        message: '영상 파일을 선택해주세요',
+        message: 'Recording file (mp4)',
         choices: () => {
           const files = fs.readdirSync(answers.recordingFilePath, { withFileTypes: true })
           return files
@@ -82,7 +82,7 @@ export default inquirer
       {
         type: 'list',
         name: 'thumbnail',
-        message: '썸네일 파일을 선택해주세요',
+        message: 'Thumbnail file (jpg)',
         choices: () => {
           const files = fs.readdirSync(answers.recordingFilePath, { withFileTypes: true })
           return files
@@ -93,14 +93,14 @@ export default inquirer
       },
       {
         type: 'input',
-        message: '영상 녹화 시간 (YYYY-MM-DD hh:mm:ss):',
+        message: 'recordedAt (YYYY-MM-DD hh:mm:ss):',
         name: 'recordedAt',
         default: dayjs().format('YYYY-MM-DD hh:mm:ss'),
         validate (input) {
           if (dayjs(input).isValid()) {
             return true
           } else {
-            throw Error('올바른 날짜 형식이 아닙니다.')
+            throw Error('Invalid date')
           }
         },
         filter (input) {
