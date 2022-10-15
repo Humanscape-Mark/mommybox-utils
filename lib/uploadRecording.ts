@@ -48,7 +48,7 @@ export default inquirer
     {
       type: 'list',
       message: '국가',
-      name: 'environment',
+      name: 'country',
       choices: ['kr', 'id'],
       default: 'kr'
     },
@@ -94,9 +94,16 @@ export default inquirer
       console.log(answers)
       console.log(files)
 
-      const uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_DEV : process.env.BOX_UPLOADER_URL_PROD
+      let uploaderUrl: String | undefined = ''
+
+      if (answers.country === 'kr') {
+        uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_KR_DEV : process.env.BOX_UPLOADER_URL_KR_PROD
+      } else if (answers.country === 'id') {
+        uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_ID_DEV : process.env.BOX_UPLOADER_URL_ID_PROD
+      }
 
       try {
+        if (uploaderUrl === undefined) throw new Error('Uploader URL undefined')
         const videoLength = await getVideoLength(path.join(answers.recordingFilePath, files.recording))
 
         const result = await axios({
