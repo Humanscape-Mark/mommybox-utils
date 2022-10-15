@@ -49,6 +49,13 @@ export default inquirer
     },
     {
       type: 'list',
+      message: '국가',
+      name: 'environment',
+      choices: ['kr', 'id'],
+      default: 'kr'
+    },
+    {
+      type: 'list',
       message: '개발/운영',
       name: 'environment',
       choices: ['dev', 'prod']
