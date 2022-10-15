@@ -5,14 +5,13 @@ import axios from 'axios'
 import os from 'os'
 import inquirer from 'inquirer'
 import ffmpeg from 'fluent-ffmpeg'
+import jwt from 'jsonwebtoken'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc.js'
 import advancedFormat from 'dayjs/plugin/advancedFormat.js'
 
 dayjs.extend(utc)
 dayjs.extend(advancedFormat)
-
-const recordingFilePath = process.env.RECORDING_FILE_PATH || os.homedir()
 
 export default inquirer
   .prompt([
@@ -25,7 +24,7 @@ export default inquirer
         if (/^MB\d{1}-\w{1}\d{5}$/.test(input.trim())) {
           return true
         } else {
-          throw Error('박스이름 형식 오류')
+          throw Error('Invalid deviceName')
         }
       },
       filter (input) {
@@ -40,7 +39,7 @@ export default inquirer
         if (input.trim().length === 11) {
           return true
         } else {
-          throw Error('바코드 길이 오류')
+          throw Error('Invalid barcode')
         }
       },
       filter (input) {
@@ -49,15 +48,22 @@ export default inquirer
     },
     {
       type: 'list',
-      message: '개발/운영',
+      message: 'County',
+      name: 'country',
+      choices: ['kr', 'id'],
+      default: 'kr'
+    },
+    {
+      type: 'list',
+      message: 'Dev/Prod',
       name: 'environment',
       choices: ['dev', 'prod']
     },
     {
-      type: 'number',
+      type: 'input',
       message: 'recordingFilePath:',
       name: 'recordingFilePath',
-      default: recordingFilePath
+      default: os.homedir()
     }
   ])
   .then(async (answers) => {
@@ -65,7 +71,7 @@ export default inquirer
       {
         type: 'list',
         name: 'recording',
-        message: '영상 파일을 선택해주세요',
+        message: 'Recording file (mp4)',
         choices: () => {
           const files = fs.readdirSync(answers.recordingFilePath, { withFileTypes: true })
           return files
@@ -76,7 +82,7 @@ export default inquirer
       {
         type: 'list',
         name: 'thumbnail',
-        message: '썸네일 파일을 선택해주세요',
+        message: 'Thumbnail file (jpg)',
         choices: () => {
           const files = fs.readdirSync(answers.recordingFilePath, { withFileTypes: true })
           return files
@@ -84,29 +90,58 @@ export default inquirer
             .filter(file => !(/(^|\/)\.[^/.]/g).test(file.name))
             .map(file => file.name)
         }
+      },
+      {
+        type: 'input',
+        message: 'recordedAt (YYYY-MM-DD hh:mm:ss):',
+        name: 'recordedAt',
+        default: dayjs().format('YYYY-MM-DD hh:mm:ss'),
+        validate (input) {
+          if (dayjs(input).isValid()) {
+            return true
+          } else {
+            throw Error('Invalid date')
+          }
+        },
+        filter (input) {
+          return dayjs(input).format('x')
+        }
       }
     ]).then(async (files) => {
       console.log(answers)
       console.log(files)
 
-      const uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_DEV : process.env.BOX_UPLOADER_URL_PROD
+      let uploaderUrl: string | undefined = ''
+      let uploaderJwtSecret: string = ''
+
+      if (answers.country === 'kr') {
+        uploaderJwtSecret = process.env.BOX_UPLOADER_KR_JWT_SECRET || ''
+        uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_KR_DEV : process.env.BOX_UPLOADER_URL_KR_PROD
+        uploaderUrl += '/recording/upload-v2'
+      } else if (answers.country === 'id') {
+        uploaderJwtSecret = process.env.BOX_UPLOADER_ID_JWT_SECRET || ''
+        uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_ID_DEV : process.env.BOX_UPLOADER_URL_ID_PROD
+        uploaderUrl += '/recording/upload'
+      }
 
       try {
+        if (uploaderUrl === undefined) throw new Error('Uploader URL is undefined')
+        if (uploaderJwtSecret === '') throw new Error('Uploader JWT key is undefined')
         const videoLength = await getVideoLength(path.join(answers.recordingFilePath, files.recording))
 
         const result = await axios({
           method: 'POST',
-          url: uploaderUrl + '/recording/upload',
+          url: uploaderUrl,
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
           headers: {
             'Content-Type': 'multipart/form-data',
-            Authorization: 'Bearer ' + process.env.UPLOADER_JWT_TOKEN
+            Authorization: 'Bearer ' + jwt.sign({ deviceName: answers.deviceName }, uploaderJwtSecret, { expiresIn: '365d' })
           },
           data: {
             barcode: answers.barcode,
             deviceName: answers.deviceName,
-            recordedAt: dayjs().format('x'),
+            recordedAt: files.recordedAt,
             resolution: '720p',
             videoLength,
             recording: fs.createReadStream(path.join(answers.recordingFilePath, files.recording)),
