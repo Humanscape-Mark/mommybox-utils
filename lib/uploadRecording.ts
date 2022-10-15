@@ -61,7 +61,7 @@ export default inquirer
       choices: ['dev', 'prod']
     },
     {
-      type: 'number',
+      type: 'input',
       message: 'recordingFilePath:',
       name: 'recordingFilePath',
       default: recordingFilePath
