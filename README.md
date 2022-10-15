@@ -13,6 +13,13 @@
 - 04-generateRandom
 랜덤 파일명 생성
 
+## 실행방법
+ts-node로 실행하면 편합니다
+```
+npm i -g ts-node
+ts-node index.ts
+```
+
 ## 필요 env (.env)
 ```
 S3_DEVICE_DAILY_LOG_BUCKET
@@ -25,3 +32,6 @@ BOX_UPLOADER_URL_ID_DEV
 BOX_UPLOADER_URL_ID_PROD
 BOX_UPLOADER_ID_JWT_SECRET
 ```
+
+## TODO
+npm start 스크립트 설정
