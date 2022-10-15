@@ -5,6 +5,7 @@ import axios from 'axios'
 import os from 'os'
 import inquirer from 'inquirer'
 import ffmpeg from 'fluent-ffmpeg'
+import jwt from 'jsonwebtoken'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc.js'
 import advancedFormat from 'dayjs/plugin/advancedFormat.js'
@@ -94,30 +95,32 @@ export default inquirer
       console.log(answers)
       console.log(files)
 
-      let uploaderUrl: String | undefined = ''
-      let uploaderJwt: String | undefined = ''
+      let uploaderUrl: string | undefined = ''
+      let uploaderJwtSecret: string = ''
 
       if (answers.country === 'kr') {
-        uploaderJwt = process.env.BOX_UPLOADER_KR_JWT_TOKEN
+        uploaderJwtSecret = process.env.BOX_UPLOADER_KR_JWT_SECRET || ''
         uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_KR_DEV : process.env.BOX_UPLOADER_URL_KR_PROD
+        uploaderUrl += '/recording/upload-v2'
       } else if (answers.country === 'id') {
-        uploaderJwt = process.env.BOX_UPLOADER_ID_JWT_TOKEN
+        uploaderJwtSecret = process.env.BOX_UPLOADER_ID_JWT_SECRET || ''
         uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_ID_DEV : process.env.BOX_UPLOADER_URL_ID_PROD
+        uploaderUrl += '/recording/upload'
       }
 
       try {
         if (uploaderUrl === undefined) throw new Error('Uploader URL is undefined')
-        if (uploaderJwt === undefined) throw new Error('Uploader JWT key is undefined')
+        if (uploaderJwtSecret === '') throw new Error('Uploader JWT key is undefined')
         const videoLength = await getVideoLength(path.join(answers.recordingFilePath, files.recording))
 
         const result = await axios({
           method: 'POST',
-          url: uploaderUrl + '/recording/upload',
+          url: uploaderUrl,
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
           headers: {
             'Content-Type': 'multipart/form-data',
-            Authorization: 'Bearer ' + uploaderJwt
+            Authorization: 'Bearer ' + jwt.sign({ deviceName: answers.deviceName }, uploaderJwtSecret, { expiresIn: '365d' })
           },
           data: {
             barcode: answers.barcode,
