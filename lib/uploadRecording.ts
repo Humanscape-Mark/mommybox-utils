@@ -90,6 +90,22 @@ export default inquirer
             .filter(file => !(/(^|\/)\.[^/.]/g).test(file.name))
             .map(file => file.name)
         }
+      },
+      {
+        type: 'input',
+        message: '영상 녹화 시간 (YYYY-MM-DD hh:mm:ss):',
+        name: 'recordedAt',
+        default: dayjs().format('YYYY-MM-DD hh:mm:ss'),
+        validate (input) {
+          if (dayjs(input).isValid()) {
+            return true
+          } else {
+            throw Error('올바른 날짜 형식이 아닙니다.')
+          }
+        },
+        filter (input) {
+          return dayjs(input).format('x')
+        }
       }
     ]).then(async (files) => {
       console.log(answers)
@@ -125,7 +141,7 @@ export default inquirer
           data: {
             barcode: answers.barcode,
             deviceName: answers.deviceName,
-            recordedAt: dayjs().format('x'),
+            recordedAt: files.recordedAt,
             resolution: '720p',
             videoLength,
             recording: fs.createReadStream(path.join(answers.recordingFilePath, files.recording)),
