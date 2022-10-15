@@ -12,8 +12,6 @@ import advancedFormat from 'dayjs/plugin/advancedFormat.js'
 dayjs.extend(utc)
 dayjs.extend(advancedFormat)
 
-const recordingFilePath = process.env.RECORDING_FILE_PATH || os.homedir()
-
 export default inquirer
   .prompt([
     {
@@ -64,7 +62,7 @@ export default inquirer
       type: 'input',
       message: 'recordingFilePath:',
       name: 'recordingFilePath',
-      default: recordingFilePath
+      default: os.homedir()
     }
   ])
   .then(async (answers) => {
