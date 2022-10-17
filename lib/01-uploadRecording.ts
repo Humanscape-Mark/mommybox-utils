@@ -63,7 +63,7 @@ export default inquirer
       type: 'input',
       message: 'recordingFilePath:',
       name: 'recordingFilePath',
-      default: os.homedir()
+      default: process.env.UPLOAD_DEFAULT_PATH || os.homedir()
     }
   ])
   .then(async (answers) => {
