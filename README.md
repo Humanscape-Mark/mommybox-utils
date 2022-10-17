@@ -22,6 +22,8 @@ ts-node index.ts
 
 ## 필요 env (.env)
 ```
+UPLOAD_DEFAULT_PATH // 없으면 home 경로
+
 S3_DEVICE_DAILY_LOG_BUCKET
 
 BOX_UPLOADER_URL_KR_DEV
