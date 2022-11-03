@@ -93,9 +93,9 @@ export default inquirer
       },
       {
         type: 'input',
-        message: 'recordedAt (YYYY-MM-DD hh:mm:ss):',
+        message: 'recordedAt (YYYY-MM-DD HH:mm:ss):',
         name: 'recordedAt',
-        default: dayjs().format('YYYY-MM-DD hh:mm:ss'),
+        default: dayjs().format('YYYY-MM-DD HH:mm:ss'),
         validate (input) {
           if (dayjs(input).isValid()) {
             return true
