@@ -50,7 +50,7 @@ export default inquirer
       type: 'list',
       message: 'County',
       name: 'country',
-      choices: ['kr', 'id'],
+      choices: ['kr', 'id', 'us'],
       default: 'kr'
     },
     {
@@ -121,6 +121,10 @@ export default inquirer
       } else if (answers.country === 'id') {
         uploaderJwtSecret = process.env.BOX_UPLOADER_ID_JWT_SECRET || ''
         uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_ID_DEV : process.env.BOX_UPLOADER_URL_ID_PROD
+        uploaderUrl += '/recording/upload'
+      } else if (answers.country === 'us') {
+        uploaderJwtSecret = process.env.BOX_UPLOADER_US_JWT_SECRET || ''
+        uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_US_DEV : process.env.BOX_UPLOADER_URL_US_PROD
         uploaderUrl += '/recording/upload'
       }
 
