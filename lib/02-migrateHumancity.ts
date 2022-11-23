@@ -2,6 +2,7 @@ import 'dotenv/config'
 import fs from 'fs'
 import path from 'path'
 import axios from 'axios'
+import async from 'async'
 import os from 'os'
 import inquirer from 'inquirer'
 import ffmpeg from 'fluent-ffmpeg'
@@ -50,31 +51,20 @@ export default inquirer
       type: 'input',
       message: 'recordingFilePath:',
       name: 'recordingFilePath',
-      default: process.env.UPLOAD_DEFAULT_PATH || path.join(os.homedir(), 'humangate')
+      default: process.env.UPLOAD_DEFAULT_PATH || path.join(os.homedir(), 'migration')
     }
   ])
   .then(async (answers) => {
-    inquirer.prompt([
-      {
-        type: 'list',
-        name: 'recording',
-        message: 'Recording file (mp4)',
-        choices: () => {
-          const files = fs.readdirSync(answers.recordingFilePath, { withFileTypes: true })
-          return files
-            .filter(file => file.isFile())
-            .filter(file => !(/(^|\/)\.[^/.]/g).test(file.name))
-            .filter(file => file.name.match('.mp4'))
-        }
-      }
-    ]).then(async (files) => {
-      console.log(answers)
-      console.log(files)
-      try {
-        const uploaderUrl = process.env.BOX_UPLOADER_URL_KR_PROD + '/recording/upload-v2'
-        const uploaderJwtSecret = process.env.BOX_UPLOADER_KR_JWT_SECRET || ''
-        const videoLength = await getVideoLength(path.join(answers.recordingFilePath, files.recording))
-        const recordedAt = fileNameDateParser(files.recording)
+    try {
+      const uploaderUrl = process.env.BOX_UPLOADER_URL_KR_PROD + '/recording/upload-v2'
+      const uploaderJwtSecret = process.env.BOX_UPLOADER_KR_JWT_SECRET || ''
+
+      const files = fs.readdirSync(answers.recordingFilePath)
+
+      async.eachSeries(files, async (file) => {
+        const videoLength = await getVideoLength(path.join(answers.recordingFilePath, file))
+        const recordedAt = fileNameDateParser(file)
+        await createVideoThumbnail(answers.recordingFilePath, file)
 
         const result = await axios({
           method: 'POST',
@@ -91,17 +81,17 @@ export default inquirer
             recordedAt,
             resolution: '480p',
             videoLength,
-            recording: fs.createReadStream(path.join(answers.recordingFilePath, files.recording)),
-            thumbnail: fs.createReadStream(path.join(answers.recordingFilePath, files.recording.replace('mp4', 'jpg'))),
-            fileId: files.recording.split('.')[0]
+            recording: fs.createReadStream(path.join(answers.recordingFilePath, file)),
+            thumbnail: fs.createReadStream(path.join(answers.recordingFilePath, file.replace('mp4', 'jpg'))),
+            fileId: file.split('.')[0]
           }
         })
 
-        console.log(result.data)
-      } catch (error) {
-        console.log(error)
-      }
-    })
+        console.log(`${file} - ${result.status}`)
+      })
+    } catch (error) {
+      console.log(error)
+    }
   })
 
 function getVideoLength (filePath: string): Promise<number> {
