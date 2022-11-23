@@ -5,14 +5,10 @@ import axios from 'axios'
 import async from 'async'
 import os from 'os'
 import inquirer from 'inquirer'
-import ffmpeg from 'fluent-ffmpeg'
 import jwt from 'jsonwebtoken'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc.js'
-import advancedFormat from 'dayjs/plugin/advancedFormat.js'
 
-dayjs.extend(utc)
-dayjs.extend(advancedFormat)
+import { mothersFilenameParser } from '../lib/dates'
+import { getVideoLength, createVideoThumbnail } from '../lib/videos'
 
 export default inquirer
   .prompt([
@@ -65,7 +61,7 @@ export default inquirer
       async.eachSeries(files, async (file) => {
         const videoLength = await getVideoLength(path.join(answers.recordingFilePath, file))
         await createVideoThumbnail(answers.recordingFilePath, file)
-        const recordedAt = fileNameDateParser(file)
+        const recordedAt = mothersFilenameParser(file)
 
         const result = await axios({
           method: 'POST',
@@ -94,33 +90,3 @@ export default inquirer
       console.log(error)
     }
   })
-
-function getVideoLength (filePath: string): Promise<number> {
-  return new Promise((resolve, reject) => {
-    ffmpeg(filePath)
-      .ffprobe((err, metadata) => {
-        if (err) reject(err)
-        resolve(Math.round(metadata.format.duration || 0))
-      })
-  })
-}
-
-function fileNameDateParser (filename: string, format: string = 'x') {
-  const datestring = filename.split('_')[0]
-
-  return dayjs(datestring, 'YYYYMMDDHHmmss').utc().format(format)
-}
-
-function createVideoThumbnail (baseDir:string, fileName: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    ffmpeg(path.join(baseDir, fileName))
-      .screenshot({
-        count: 1,
-        filename: fileName.replace('mp4', 'jpg'),
-        folder: baseDir
-      })
-      .on('end', () => {
-        return resolve()
-      })
-  })
-}
