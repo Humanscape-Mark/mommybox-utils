@@ -1,16 +1,37 @@
+import 'dotenv/config'
 import fs from 'fs'
-import os from 'os'
 import path from 'path'
-import ffmpeg from 'fluent-ffmpeg'
+import axios from 'axios'
 import async from 'async'
+import os from 'os'
 import inquirer from 'inquirer'
+import ffmpeg from 'fluent-ffmpeg'
+import jwt from 'jsonwebtoken'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc.js'
+import advancedFormat from 'dayjs/plugin/advancedFormat.js'
 
 dayjs.extend(utc)
+dayjs.extend(advancedFormat)
 
 export default inquirer
   .prompt([
+    {
+      type: 'input',
+      message: 'deviceName:',
+      name: 'deviceName',
+      default: 'MB0-X00034',
+      validate (input) {
+        if (/^MB\d{1}-\w{1}\d{5}$/.test(input.trim())) {
+          return true
+        } else {
+          throw Error('Invalid deviceName')
+        }
+      },
+      filter (input) {
+        return input.trim()
+      }
+    },
     {
       type: 'input',
       message: 'barcode:',
@@ -19,7 +40,7 @@ export default inquirer
         if (input.trim().length === 11) {
           return true
         } else {
-          throw Error('바코드 길이 오류')
+          throw Error('Invalid barcode')
         }
       },
       filter (input) {
@@ -27,58 +48,51 @@ export default inquirer
       }
     },
     {
-      type: 'number',
-      message: 'hospitalSeq:',
-      name: 'hospitalSeq',
-      validate (input) {
-        if (typeof input === 'number') {
-          return true
-        } else {
-          throw Error('숫자를 입력해 주세요')
-        }
-      }
-    },
-    {
-      type: 'number',
-      message: 'hospitalRoomSeq:',
-      name: 'hospitalRoomSeq',
-      validate (input) {
-        if (typeof input === 'number') {
-          return true
-        } else {
-          throw Error('숫자를 입력해 주세요')
-        }
-      }
-    },
-    {
       type: 'input',
-      message: 's3KeyBase (예: 03/00329/GJC00329H16619):',
-      name: 's3KeyBase'
-    },
-    {
-      type: 'input',
-      message: 'baseDir:',
-      name: 'baseDir',
-      default: path.join(os.homedir(), 'mp4')
+      message: 'recordingFilePath:',
+      name: 'recordingFilePath',
+      default: process.env.UPLOAD_DEFAULT_PATH || path.join(os.homedir(), 'migration')
     }
   ])
   .then(async (answers) => {
     try {
-      const files = fs.readdirSync(answers.baseDir)
-      const query = await createQuery(answers.barcode, answers.hospitalSeq, answers.hospitalRoomSeq, answers.s3KeyBase, answers.baseDir, files)
-      console.log(query)
+      const uploaderUrl = process.env.BOX_UPLOADER_URL_KR_PROD + '/recording/upload-v2'
+      const uploaderJwtSecret = process.env.BOX_UPLOADER_KR_JWT_SECRET || ''
+
+      const files = fs.readdirSync(answers.recordingFilePath)
+
+      async.eachSeries(files, async (file) => {
+        const videoLength = await getVideoLength(path.join(answers.recordingFilePath, file))
+        const recordedAt = fileNameDateParser(file)
+        await createVideoThumbnail(answers.recordingFilePath, file)
+
+        const result = await axios({
+          method: 'POST',
+          url: uploaderUrl,
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: 'Bearer ' + jwt.sign({ deviceName: answers.deviceName }, uploaderJwtSecret, { expiresIn: '365d' })
+          },
+          data: {
+            barcode: answers.barcode,
+            deviceName: answers.deviceName,
+            recordedAt,
+            resolution: '480p',
+            videoLength,
+            recording: fs.createReadStream(path.join(answers.recordingFilePath, file)),
+            thumbnail: fs.createReadStream(path.join(answers.recordingFilePath, file.replace('mp4', 'jpg'))),
+            fileId: file.split('.')[0]
+          }
+        })
+
+        console.log(`${file} - ${result.status}`)
+      })
     } catch (error) {
       console.log(error)
     }
   })
-
-function fileNameDateParser (filename: string) {
-  const datestring = filename
-    .replace('y', '-').replace('m', '-').replace('d(', ' ')
-    .replace('h', ':').replace('m', ':').replace('s).mp4', '')
-
-  return dayjs(datestring).utc().format()
-}
 
 function getVideoLength (filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -90,31 +104,24 @@ function getVideoLength (filePath: string): Promise<number> {
   })
 }
 
-async function createQuery (barcode: string, hospitalSeq: number, hospitalRoomSeq: number, s3KeyBase: string, baseDir: string, files: string[]) {
-  const baseQuery = `
-    INSERT INTO recordings (
-      deviceSeq, hospitalSeq, hospitalRoomSeq,
-      barcode, fullBarcode, deleteFlag,
-      fileId, localFilePath, resolution,
-      videoLength, s3Bucket, s3FileKey,
-      recordedAt, createdAt, updatedAt
-    )
-    VALUES
-  `
-  const valueQuery = await async.mapSeries(files, async (file: string) => {
-    const videoLength = await getVideoLength(baseDir + '/' + file)
-    const recordedAt = fileNameDateParser(file)
+function fileNameDateParser (filename: string, format: string = 'x') {
+  const datestring = filename
+    .replace('y', '-').replace('m', '-').replace('d(', ' ')
+    .replace('h', ':').replace('m', ':').replace('s).mp4', '')
 
-    return `
-      (
-        34, ${hospitalSeq}, ${hospitalRoomSeq},
-        ${barcode.substring(2)}, '${barcode}', 0,
-        '${file.split('.')[0]}', '', '480p',
-        ${videoLength}, 'ultrasound.migrated.mmtalk.kr', 'humangate/${s3KeyBase}/${file}',
-        '${recordedAt}', NOW(), NOW()
-      )
-    `
+  return dayjs(datestring).utc().format(format)
+}
+
+function createVideoThumbnail (baseDir:string, fileName: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    ffmpeg(path.join(baseDir, fileName))
+      .screenshot({
+        count: 1,
+        filename: fileName.replace('mp4', 'jpg'),
+        folder: baseDir
+      })
+      .on('end', () => {
+        return resolve()
+      })
   })
-
-  return baseQuery + valueQuery.join(',')
 }
