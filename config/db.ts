@@ -1,9 +1,10 @@
-import Sequelize from 'sequelize'
+import mysql from 'mysql2'
 
-const sequelize = new Sequelize(process.env.MYSQL_DB, process.env.MYSQL_USERNAME, process.env.MYSQL_PASSWORD, {
-  dialect: 'mysql',
-  host: process.env.MYSQL_HOST,
-  port: process.env.MYSQL_PORT || '3306'
+const connectionPool = mysql.createPool({
+  host: process.env.BOX_DB_HOST,
+  user: process.env.BOX_DB_USER,
+  password: process.env.BOX_DB_PASSWORD,
+  database: process.env.BOX_DB_DATABASE
 })
 
-export default sequelize
+export default connectionPool
