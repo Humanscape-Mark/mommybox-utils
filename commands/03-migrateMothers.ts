@@ -7,8 +7,8 @@ import os from 'os'
 import inquirer from 'inquirer'
 import jwt from 'jsonwebtoken'
 
-import { mothersFilenameParser } from '../lib/dates'
-import { getVideoLength, createVideoThumbnail } from '../lib/videos'
+import { mothersFilenameParser } from '../lib/dates.js'
+import { getVideoLength, createVideoThumbnail } from '../lib/videos.js'
 
 export default inquirer
   .prompt([

@@ -3,12 +3,11 @@ import fs from 'fs'
 import path from 'path'
 import axios from 'axios'
 import async from 'async'
-import os from 'os'
 import inquirer from 'inquirer'
 import jwt from 'jsonwebtoken'
 
-import { humangateFilenameParser } from '../lib/dates'
-import { getVideoLength, createVideoThumbnail } from '../lib/videos'
+import { humangateFilenameParser } from '../lib/dates.js'
+import { getVideoLength, createVideoThumbnail } from '../lib/videos.js'
 
 export default inquirer
   .prompt([

@@ -1,7 +1,7 @@
 import path from 'path'
 import ffmpeg from 'fluent-ffmpeg'
 
-function getVideoLength (filePath: string): Promise<number> {
+export function getVideoLength (filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     ffmpeg(filePath)
       .ffprobe((err, metadata) => {
@@ -11,7 +11,7 @@ function getVideoLength (filePath: string): Promise<number> {
   })
 }
 
-function createVideoThumbnail (baseDir:string, fileName: string): Promise<void> {
+export function createVideoThumbnail (baseDir:string, fileName: string): Promise<void> {
   return new Promise((resolve, reject) => {
     ffmpeg(path.join(baseDir, fileName))
       .screenshot({
@@ -23,9 +23,4 @@ function createVideoThumbnail (baseDir:string, fileName: string): Promise<void> 
         return resolve()
       })
   })
-}
-
-export {
-  getVideoLength,
-  createVideoThumbnail
 }
