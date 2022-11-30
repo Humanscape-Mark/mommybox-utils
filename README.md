@@ -5,12 +5,15 @@
 초음파 영상 업로드
 
 - 02-migrateHumancity
-휴먼시티 영상 이전 쿼리 생성기
+휴먼시티 영상 이전
 
-- 03-mmbDevices
-마미박스 현재정보 S3에 업로드/기록 (sls)
+- 03-migrateMothers
+마더스 영상 이전
 
-- 04-generateRandom
+- 04-createThumbnail
+썸네일 이미지 생성
+
+- 05-generateRandom
 랜덤 파일명 생성
 
 ## 실행방법
@@ -26,13 +29,28 @@ UPLOAD_DEFAULT_PATH // 없으면 home 경로
 
 S3_DEVICE_DAILY_LOG_BUCKET
 
+// KR
 BOX_UPLOADER_URL_KR_DEV
 BOX_UPLOADER_URL_KR_PROD
 BOX_UPLOADER_KR_JWT_SECRET
 
+// ID
 BOX_UPLOADER_URL_ID_DEV
 BOX_UPLOADER_URL_ID_PROD
 BOX_UPLOADER_ID_JWT_SECRET
+
+// US
+BOX_UPLOADER_URL_US_DEV
+BOX_UPLOADER_URL_US_PROD
+BOX_UPLOADER_US_JWT_SECRET
+
+S3_HUMANGATE_BUCKET_NAME
+S3_MOTHERS_BUCKET_NAME
+
+MIGRATION_DB_HOST
+MIGRATION_DB_DATABASE
+MIGRATION_DB_USER
+MIGRATION_DB_PASSWORD
 ```
 
 ## TODO
