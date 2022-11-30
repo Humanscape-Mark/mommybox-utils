@@ -1,4 +1,4 @@
-import winston from 'winston';
+import winston from 'winston'
 
 export default winston.createLogger({
   transports: [
@@ -10,9 +10,9 @@ export default winston.createLogger({
         winston.format.timestamp(),
         winston.format.colorize(),
         winston.format.printf(({ level, message, label, timestamp }) => {
-          return `${timestamp} ${level}: ${message}`;
+          return `${timestamp} ${level}: ${message}`
         })
       )
     })
   ]
-});
+})
