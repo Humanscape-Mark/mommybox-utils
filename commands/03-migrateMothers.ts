@@ -63,11 +63,13 @@ export default inquirer
       .then(async (answers) => {
         try {
           const { barcode, deviceName } = answers
+          console.log(answers)
           const uploaderUrl = process.env.BOX_UPLOADER_URL_KR_PROD + '/recording/upload-v2'
           const uploaderJwtSecret = process.env.BOX_UPLOADER_KR_JWT_SECRET || ''
 
           let count = 1
           return async.eachSeries(videoList, async videoInfo => {
+            console.log(videoInfo)
             const { videoFileName, videoFilePath } = videoInfo
             const Key = 'mothers' + videoFilePath + '/' + videoFileName
 
@@ -75,7 +77,7 @@ export default inquirer
 
             const bodyStream = await Body?.transformToByteArray()
             fs.writeFileSync(path.join(tempPath, videoFileName), Buffer.from(bodyStream!))
-
+            console.log('createThumbnail')
             await createVideoThumbnail(tempPath, videoFileName)
             const fileId = videoFileName.split('.')[0]
             const thumbnailFileName = videoFileName.replace('mp4', 'jpg')
