@@ -20,13 +20,6 @@ export default inquirer
       message: 'deviceName:',
       name: 'deviceName',
       default: 'MB2-A90009',
-      validate (input) {
-        if (/^MB\d{1}-\w{1}\d{5}$/.test(input.trim())) {
-          return true
-        } else {
-          throw Error('Invalid deviceName')
-        }
-      },
       filter (input) {
         return input.trim()
       }
@@ -35,6 +28,7 @@ export default inquirer
       type: 'input',
       message: 'barcode:',
       name: 'barcode',
+      default: '21372706230',
       validate (input) {
         if (input.trim().length === 11) {
           return true
@@ -50,7 +44,7 @@ export default inquirer
       type: 'list',
       message: 'County',
       name: 'country',
-      choices: ['kr', 'id', 'us'],
+      choices: ['kr', 'id', 'us', 'vn', 'local'],
       default: 'kr'
     },
     {
@@ -126,6 +120,13 @@ export default inquirer
         uploaderJwtSecret = process.env.BOX_UPLOADER_US_JWT_SECRET || ''
         uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_US_DEV : process.env.BOX_UPLOADER_URL_US_PROD
         uploaderUrl += '/recording/upload'
+      } else if (answers.country === 'vn') {
+        uploaderJwtSecret = process.env.BOX_UPLOADER_VN_JWT_SECRET || ''
+        uploaderUrl = answers.environment === 'dev' ? process.env.BOX_UPLOADER_URL_VN_DEV : process.env.BOX_UPLOADER_URL_VN_PROD
+        uploaderUrl += '/recording/upload'
+      } else if (answers.country === 'local') {
+        uploaderJwtSecret = process.env.BOX_UPLOADER_LOCAL_JWT_SECRET || ''
+        uploaderUrl = process.env.BOX_UPLOADER_URL_LOCAL + '/recording/upload'
       }
 
       try {
