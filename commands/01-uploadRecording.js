@@ -19,7 +19,7 @@ export default inquirer
       type: 'input',
       message: 'deviceName:',
       name: 'deviceName',
-      default: 'MB2-A90009',
+      default: 'MB2-X00001',
       filter (input) {
         return input.trim()
       }
@@ -105,8 +105,8 @@ export default inquirer
       console.log(answers)
       console.log(files)
 
-      let uploaderUrl: string | undefined = ''
-      let uploaderJwtSecret: string = ''
+      let uploaderUrl = ''
+      let uploaderJwtSecret = ''
 
       if (answers.country === 'kr') {
         uploaderJwtSecret = process.env.BOX_UPLOADER_KR_JWT_SECRET || ''
@@ -162,7 +162,7 @@ export default inquirer
     })
   })
 
-function getVideoLength (filePath: string): Promise<number> {
+function getVideoLength (filePath) {
   return new Promise((resolve, reject) => {
     ffmpeg(filePath)
       .ffprobe((err, metadata) => {

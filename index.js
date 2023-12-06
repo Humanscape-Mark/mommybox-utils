@@ -7,8 +7,10 @@ inquirer
     type: 'list',
     name: 'func',
     message: 'Select function',
-    choices: fs.readdirSync('./commands').map((filename) => filename.split('.')[0])
+    choices: fs
+      .readdirSync('./commands')
+      .map((filename) => filename.split('.')[0])
   })
   .then(async (result) => {
-    await import(`./commands/${result.func}.ts`)
+    await import(`./commands/${result.func}.js`)
   })

@@ -79,7 +79,7 @@ export default inquirer
               const { Body } = await s3Client.send(new GetObjectCommand({ Bucket, Key }))
 
               const bodyStream = await Body?.transformToByteArray()
-              fs.writeFileSync(path.join(tempPath, videoFileName), Buffer.from(bodyStream!))
+              fs.writeFileSync(path.join(tempPath, videoFileName), Buffer.from(bodyStream))
 
               await createVideoThumbnail(tempPath, videoFileName)
               const fileId = videoFileName.split('.')[0]

@@ -76,7 +76,7 @@ export default inquirer
             const { Body } = await s3Client.send(new GetObjectCommand({ Bucket, Key }))
 
             const bodyStream = await Body?.transformToByteArray()
-            fs.writeFileSync(path.join(tempPath, videoFileName), Buffer.from(bodyStream!))
+            fs.writeFileSync(path.join(tempPath, videoFileName), Buffer.from(bodyStream))
             console.log('createThumbnail')
             await createVideoThumbnail(tempPath, videoFileName)
             const fileId = videoFileName.split('.')[0]
@@ -120,7 +120,7 @@ export default inquirer
       })
   })
 
-async function getVideolist (chartnumber: string | number) {
+async function getVideolist (chartnumber) {
   const [result] = await migrationDb.query(`
     SELECT
       vFilename as videoFileName,
@@ -132,10 +132,7 @@ async function getVideolist (chartnumber: string | number) {
   `)
 
   if (typeof result === 'object') {
-    return result as [{
-      videoFileName: string,
-      videoFilePath: string
-    }]
+    return result
   } else {
     throw new Error('No result')
   }

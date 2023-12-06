@@ -9,7 +9,7 @@
     "sourceMap": true,
     "allowJs": true,
     "target": "es2017",
-    "module": "es2020",
+    "module": "esnext",
     "lib": ["es2020"],
     "moduleResolution": "node",
     "outDir": ".build",
@@ -17,9 +17,10 @@
     "esModuleInterop": true
   },
   "include": [
+    "**/*.js",
     "**/*.ts",
     "**/*.json"
-, "temp.js"  ],
+, "temp.js", "index.js"  ],
   "exclude": [
     "node_modules",
     "tmp",
